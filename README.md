@@ -6,7 +6,7 @@ This project is based on the requirements of Udacity's Data Engineering Degree C
 
 What's the goal? What queries will you want to run? 
 
-In order to allow the U.S Customs & Border Protection Department to more efficiently analyze their immigration data, we are building a data warehouse infrastructure that allows.
+In order to allow the U.S Customs & Border Protection Department to more efficiently analyze their immigration data, we are building a data warehouse infrastructure that allows...
 
 ?? What's the end use case? (e.g., analytics table, app back-end, source-of-truth database, etc.)
 
@@ -14,6 +14,9 @@ To answer questions such as:
 - What is the trend in the number of immigrants and their country of origin over the year?
 - are their seasonal trends in the number, country of origin, and city/ state of destination of immigrants?
 - is there a correlation between the country of origin and the destination in the US?
+- is there a correlation between the country of origin and the predominant race in the city/state of destination?
+- correlation between purpose of travel and destination city / state
+- what's the average stay duration?
 
 ## Data
 To this end I am using the following data sources:
