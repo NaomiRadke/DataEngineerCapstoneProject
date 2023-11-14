@@ -54,7 +54,7 @@ I set up a Jupyter Notebook that allows loading, exploring and cleaning the data
 
 ### Run ETL to model the data
 - Extract data from source (e.g. postgres / s3)
-- Transform data (join tables together, change types, add new columns)
+- Transform data (join tables together, change types, add new columns) and save it in parquet format in S3 as staging area
 - Load it into dimensional model (star schema --> fact and dimension tables)
 - create data pipelines and data model
 - include data dictionary
