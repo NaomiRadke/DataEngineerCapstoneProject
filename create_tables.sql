@@ -37,17 +37,17 @@ CREATE TABLE IF NOT EXISTS public.demographics (
     stateCode int4,
     state varchar,
     medianAge int4,
-    malePopulation int4,
-    femalePopulation int4,
-    totalPopulation int4,
-    numberOfVeterans int4,
-    foreignBorn int4,
+    malePopulation int8,
+    femalePopulation int8,
+    totalPopulation int8,
+    numberOfVeterans int8,
+    foreignBorn int8,
     averageHouseholdSize int4,
-    blackOrAfricanAmerican int4,
-    hispanicOrLatino int4,
-    americanIndianAndAlaskaNative int4,
-    asian int4,
-    white int4
+    blackOrAfricanAmerican int8,
+    hispanicOrLatino int8,
+    americanIndianAndAlaskaNative int8,
+    asian int8,
+    white int8,
     CONSTRAINT demographics_pkey PRIMARY KEY (stateCode)
 );   
 
