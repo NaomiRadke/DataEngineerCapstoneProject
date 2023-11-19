@@ -67,8 +67,27 @@ def convert_sas_date(df, cols):
         df = df.withColumn(c, convert_sas_udf(df[c]))
     return df
 
+def time_delta(date1, date2):
+    """
+    Calculates the time difference in days between
+
+    Args:
+        date1 (_type_): _description_
+        date2 (_type_): _description_
+    """
+    
+    if date2 is None:
+        return None
+    else:
+        a = datetime.strptime(date1, date_format)
+        b = datetime.strptime(date2, date_format)
+        delta = b - a
+        return delta.days
+
 # user-defined function to turn SAS dates into YYYY-MM-DD format
-convert_sas_udf = udf(lambda x: x if x is None else (timedelta(days=x) + datetime(1960, 1, 1)).strftime(date_format))    
+date_format="%Y-%m-%d"
+convert_sas_udf = udf(lambda x: x if x is None else (timedelta(days=x) + datetime(1960, 1, 1)).strftime(date_format))   
+time_delta_udf = udf(time_delta) 
 
     
     
@@ -79,14 +98,15 @@ def etl_immigration(
     in_path="data/sas_data", 
     in_format="parquet",
     columns=['cicid', 'i94yr', 'i94mon', 'i94res', 'i94mode', 'i94addr', 'i94cit', 'i94bir', 'i94visa', 'arrdate', 'depdate', 'biryear', 'dtaddto', 'gender', 'airline', 'admnum', 'fltno', 'visatype'],
-    out_path="s3a://data-engineer-capstone/immigration.parquet"):
+    out_path="s3a://data-engineer-capstone/immigration.parquet",
+    date_out_path="s3a://data-engineer-capstone/date.parquet"):
     """
     - loads data
     - transforms data
     - saves data in S3
     """
     # load data
-    immigration = load_data_from_source(spark, in_path=in_path, in_format=in_format, columns=columns, row_limit=10)
+    immigration = load_data_from_source(spark, in_path=in_path, in_format=in_format, columns=columns, row_limit=100000)
     
     # turn numeric columns to either integer or double
     int_cols = ['cicid', 'i94yr', 'i94mon', 'i94res', 'i94mode', 'i94cit', 'i94bir', 'i94visa', 'arrdate', 'depdate', 'biryear']
@@ -94,12 +114,21 @@ def etl_immigration(
     
     # turn SAS date columns to YYYY-MM-DD format
     date_cols = ['arrdate', 'depdate']
-    date_format="%Y-%m-%d"
-    
+    immigration = convert_sas_date(immigration, date_cols)
     
     # add new column for stay duration
+    immigration = immigration.withColumn('stay_duration', time_delta_udf(immigration.arrdate, immigration.depdate))
     
-    # save to S3 in parquet format
+    # create a new dataframe arrival_date that will be used in the data model
+    arrival_date = immigration.select('arrdate').distinct()
+    arrival_date = arrival_date.withColumn("day", dayofmonth(arrival_date.arrdate))
+    arrival_date = arrival_date.withColumn("month", month(arrival_date.arrdate))
+    arrival_date = arrival_date.withColumn("year", year(arrival_date.arrdate))
+    arrival_date = arrival_date.withColumn("weekofyear", weekofyear(arrival_date.arrdate))
+    arrival_date = arrival_date.withColumn("dayofweek", dayofweek(arrival_date.arrdate))
+    
+    # save immigration dataframe to S3 in parquet format
+    
 
 # ETL demographic data
 
