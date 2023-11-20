@@ -2,7 +2,7 @@ import os, re
 import configparser
 from datetime import timedelta, datetime
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import udf, col, when, lower, isnull, year, month, dayofmonth, hour, weekofyear, dayofweek, date_format, to_date
+from pyspark.sql.functions import udf, col, when, lower, isnull, year, month, dayofmonth, weekofyear, dayofweek, date_format, avg as _avg, sum as _sum, round as _round
 from pyspark.sql.types import StructField, StructType, IntegerType, DoubleType
 
 
@@ -20,7 +20,7 @@ def initiate_spark_session():
     return spark
 
 # Load data
-def load_data_from_source(spark, in_path, in_format, columns, row_limit):
+def load_data_from_source(spark, in_path, in_format, columns, row_limit, **options):
     """
     Loads data from the defined input path (in_path) with spark into a spark dataframe
     args:
@@ -31,9 +31,9 @@ def load_data_from_source(spark, in_path, in_format, columns, row_limit):
         row_limit:  number of rows that should be loaded, if None, all rows are loaded    
     """
     if row_limit is None:
-        df = spark.read.load(in_path, format=in_format).select(columns)
+        df = spark.read.load(in_path, format=in_format, **options).select(columns)
     else:
-        df = spark.read.load(in_path, format=in_format).select(columns).limit(row_limit)
+        df = spark.read.load(in_path, format=in_format, **options).select(columns).limit(row_limit)
         
     return df
 
@@ -90,8 +90,6 @@ convert_sas_udf = udf(lambda x: x if x is None else (timedelta(days=x) + datetim
 time_delta_udf = udf(time_delta) 
 
     
-    
-    
 # ETL immigration data
 def etl_immigration(
     spark, 
@@ -127,11 +125,103 @@ def etl_immigration(
     arrival_date = arrival_date.withColumn("weekofyear", weekofyear(arrival_date.arrdate))
     arrival_date = arrival_date.withColumn("dayofweek", dayofweek(arrival_date.arrdate))
     
-    # save immigration dataframe to S3 in parquet format
+    # save immigration and arrival_date dataframe to S3 in parquet format
+    save_to_s3(df=immigration, out_path=out_path)
+    save_to_s3(df=arrival_date, out_path=date_out_path)
+    
+    return immigration
     
 
 # ETL demographic data
+def etl_demographics(
+    spark, 
+    in_path="data/us-cities-demographics.csv", 
+    in_format="csv",
+    columns='*',
+    out_path="s3a://data-engineer-capstone/demographics.parquet",
+    header=True,
+    sep=";",
+    row_limit=1000
+):
+    """_summary_
 
+    Args:
+        spark (_type_): _description_
+        in_path (str, optional): _description_. Defaults to "data/us-cities-demographics.csv".
+        in_format (str, optional): _description_. Defaults to "csv".
+        columns (list, optional): _description_. Defaults to [].
+        out_path (str, optional): _description_. Defaults to "s3a://data-engineer-capstone/demographics.parquet".
+
+    Returns:
+        _type_: _description_
+    """
+    demographics = load_data_from_source(
+        spark,
+        in_path=in_path,
+        in_format=in_format,
+        columns=columns,
+        out_path=out_path,
+        header=header,
+        sep=sep,
+        row_limit=row_limit
+        )
+    
+    # Turn numeric columns into their proper types: Integer or Double
+    int_cols = ['Count', 'Male Population', 'Female Population', 'Total Population', 'Number of Veterans', 'Foreign-born']
+    float_cols = ['Median Age', 'Average Household Size']
+    demographics = cast_type(demographics, dict(zip(int_cols, len(int_cols)*[IntegerType()])))
+    demographics = cast_type(demographics, dict(zip(float_cols, len(float_cols)*[DoubleType()])))
+    
+    # Aggregate columns per state. This requires first to aggregate by city and to pivot the race+count column
+    race_cols = ["Black or African-American","American Indian and Alaska Native", "Hispanic or Latino", "Asian", "White"]
+
+    
+    # First, pivot the Race and Count column by City
+    race_by_city = demographics.groupBy(["City", "State", "State Code"]).pivot("Race", race_cols).sum("Count")
+    
+    
+    # Then, sum the number of each race per state
+    race_by_state = race_by_city.groupBy(["State", "State Code"]).sum()
+    race_by_state = race_by_city.groupBy(["State", "State Code"]) \
+        .agg(_sum("Black or African-American").alias("blackOrAfricanAmerican"), \
+            _sum("American Indian and Alaska Native").alias("amerianIndianAndAlaskaNative"), \
+            _sum("Hispanic or Latino").alias("hispanicOrLatino"), \
+            _sum("Asian").alias("Asian"),\
+            _sum("White").alias("White"))
+    
+    # Also sum the non-race columns per state
+    df_by_state = demographics.groupBy(["State", "State Code"]) \
+        .agg(_sum("Male Population").alias("malePopulation"), \
+            _sum("Female Population").alias("femalePopulation"), \
+            _sum("Total Population").alias("totalPopulation"), \
+            _sum("Number of Veterans").alias("numberOfVeterans"), \
+            _sum("Foreign-born").alias("foreignBorn"), \
+            _avg("Median Age").alias("medianAge"), \
+            _avg("Average Household Size").alias("averageHouseholdSize"))
+    
+    # Round the medianAge and averageHouseholdSize column to two decimals
+    df_by_state = df_by_state.withColumn("medianAge", _round(df_by_state["medianAge"], 2))
+    df_by_state = df_by_state.withColumn("averageHouseholdSize", _round(df_by_state["averageHouseholdSize"], 2))
+    
+    # Join the two dataframes
+    demographics = df_by_state.join(other=race_by_state, on=["State", "State Code"], how="inner")
+    
+    # Save the dataframe as parquet on S3
+    save_to_s3(df=demographics, out_path=out_path)
+    
+    return demographics
+
+# Countries 
+
+def etl_countries(
+    spark,
+    in_path,
+    in_format,
+    out_path,
+    columns,
+    header=True):
+    
+return etl_countries
 #
 
 if __name__ == "__main__" :
