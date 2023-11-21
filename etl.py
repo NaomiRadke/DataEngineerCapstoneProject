@@ -2,8 +2,8 @@ import os, re
 import configparser
 from datetime import timedelta, datetime
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import udf, col, when, lower, isnull, year, month, dayofmonth, weekofyear, dayofweek, date_format, avg as _avg, sum as _sum, round as _round
-from pyspark.sql.types import StructField, StructType, IntegerType, DoubleType
+from pyspark.sql.functions import udf, col, when, lower, isnull, year, month, dayofmonth, weekofyear, dayofweek, date_format, avg as _avg, sum as _sum, round as _round, create_map, lit
+from pyspark.sql.types import StructField, StructType, IntegerType, DoubleType, StringType
 
 
 
@@ -83,6 +83,22 @@ def time_delta(date1, date2):
         b = datetime.strptime(date2, date_format)
         delta = b - a
         return delta.days
+    
+def load_sas_labels():
+    with open('./data/I94_SAS_Labels_Descriptions.SAS') as f:
+        f_content = f.read()
+        f_content = f_content.replace('\t', '')
+        dic = code_mapper(f_content, "i94cntyl")
+    return dic    
+        
+def code_mapper(file, idx):
+    f_content2 = file[file.index(idx):]
+    f_content2 = f_content2[:f_content2.index(';')].split('\n')
+    f_content2 = [i.replace("'", "") for i in f_content2]
+    dic = [i.split('=') for i in f_content2[1:]]
+    dic = dict([i[0].strip(), i[1].strip()] for i in dic if len(i) == 2)
+    return dic
+    
 
 # user-defined function to turn SAS dates into YYYY-MM-DD format
 date_format="%Y-%m-%d"
@@ -221,8 +237,16 @@ def etl_countries(
     columns,
     header=True):
     
-return etl_countries
-#
+    # Create a country code lookup table to match country code and country name
+    countries_dict= load_sas_labels()
+    schema = StructType([StructField('countryCode', StringType(), True),StructField('countryName', StringType(), True) ])
+    data_tuples = [(key, value) for key, value in countries_dict.items()]
+    countries_df = spark.createDataFrame(data_tuples, schema)
+    
+    # save on S3
+    
+    return countries_df
+
 
 if __name__ == "__main__" :
     spark = initiate_spark_session()
