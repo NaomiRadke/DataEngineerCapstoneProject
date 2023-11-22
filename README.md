@@ -59,7 +59,14 @@ On an AWS EMR Cluster and using Airflow for scheduling tasks
 - Load it into dimensional model (star schema --> fact and dimension tables)
 - create data pipelines and data model
 - include data dictionary
-- run data quality checks
+- run data quality check
+
+DAGS:
+- run spark jobs (extract, transform, load to s3)
+    - load to S3 (includes transformation and saving)
+- create tables in redshift
+- stage from s3 to redshift
+- data quality checks
 
 
 ## Recommedations and assumptions

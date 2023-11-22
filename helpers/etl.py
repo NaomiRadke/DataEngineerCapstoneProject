@@ -107,7 +107,7 @@ time_delta_udf = udf(time_delta)
 
     
 # ETL immigration data
-def etl_immigration(
+def process_immigration_data(
     spark, 
     in_path="data/sas_data", 
     in_format="parquet",
@@ -120,7 +120,7 @@ def etl_immigration(
     - saves data in S3
     """
     # load data
-    immigration = load_data_from_source(spark, in_path=in_path, in_format=in_format, columns=columns, row_limit=100000)
+    immigration = load_data_from_source(spark, in_path=in_path, in_format=in_format, columns=columns, row_limit=None)
     
     # turn numeric columns to either integer or double
     int_cols = ['cicid', 'i94yr', 'i94mon', 'i94res', 'i94mode', 'i94cit', 'i94bir', 'i94visa', 'arrdate', 'depdate', 'biryear']
@@ -149,7 +149,7 @@ def etl_immigration(
     
 
 # ETL demographic data
-def etl_demographics(
+def process_demographics_data(
     spark, 
     in_path="data/us-cities-demographics.csv", 
     in_format="csv",
@@ -157,7 +157,7 @@ def etl_demographics(
     out_path="s3a://data-engineer-capstone/demographics.parquet",
     header=True,
     sep=";",
-    row_limit=1000
+    row_limit=None
 ):
     """_summary_
 
@@ -229,7 +229,7 @@ def etl_demographics(
 
 # Countries 
 
-def etl_countries(
+def process_countries_data(
     spark,
     in_path,
     in_format,
@@ -250,3 +250,6 @@ def etl_countries(
 
 if __name__ == "__main__" :
     spark = initiate_spark_session()
+    immigration = process_immigration_data(spark)
+    demographics = process_demographics_data(spark)
+    countries = process_countries_data(spark)
