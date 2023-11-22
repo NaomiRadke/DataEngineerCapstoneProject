@@ -10,6 +10,8 @@ from pyspark.sql.types import StructField, StructType, IntegerType, DoubleType, 
 # Save AWS credentials as environment variables
 
 
+
+
 def initiate_spark_session():
     
     spark  = SparkSession \
@@ -84,8 +86,8 @@ def time_delta(date1, date2):
         delta = b - a
         return delta.days
     
-def load_sas_labels():
-    with open('./data/I94_SAS_Labels_Descriptions.SAS') as f:
+def load_sas_labels(in_path):
+    with open(in_path) as f:
         f_content = f.read()
         f_content = f_content.replace('\t', '')
         dic = code_mapper(f_content, "i94cntyl")
@@ -112,7 +114,7 @@ def process_immigration_data(
     in_path="data/sas_data", 
     in_format="parquet",
     columns=['cicid', 'i94yr', 'i94mon', 'i94res', 'i94mode', 'i94addr', 'i94cit', 'i94bir', 'i94visa', 'arrdate', 'depdate', 'biryear', 'dtaddto', 'gender', 'airline', 'admnum', 'fltno', 'visatype'],
-    out_path="s3a://data-engineer-capstone/immigration.parquet",
+    out_path="s3n:///immigration.parquet",
     date_out_path="s3a://data-engineer-capstone/date.parquet"):
     """
     - loads data
@@ -232,13 +234,11 @@ def process_demographics_data(
 def process_countries_data(
     spark,
     in_path,
-    in_format,
-    out_path,
-    columns,
-    header=True):
+    out_path
+    ):
     
     # Create a country code lookup table to match country code and country name
-    countries_dict= load_sas_labels()
+    countries_dict= load_sas_labels(in_path)
     schema = StructType([StructField('countryCode', StringType(), True),StructField('countryName', StringType(), True) ])
     data_tuples = [(key, value) for key, value in countries_dict.items()]
     countries_df = spark.createDataFrame(data_tuples, schema)
@@ -250,6 +250,7 @@ def process_countries_data(
 
 if __name__ == "__main__" :
     spark = initiate_spark_session()
-    immigration = process_immigration_data(spark)
-    demographics = process_demographics_data(spark)
-    countries = process_countries_data(spark)
+    bucket = "s3n://udacity-dataengineer-capstone/"
+    immigration = process_immigration_data(spark, in_path=bucket+"", out_path=bucket+"")
+    demographics = process_demographics_data(spark, in_path=bucket+"", out_path=bucket+"")
+    countries = process_countries_data(spark, in_path=bucket+"I94_SAS_Labels_Descriptions.SAS", out_path=bucket+"")
