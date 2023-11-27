@@ -1,14 +1,20 @@
-import os, re
+import os
 import configparser
 from datetime import timedelta, datetime
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import udf, col, when, lower, isnull, year, month, dayofmonth, weekofyear, dayofweek, date_format, avg as _avg, sum as _sum, round as _round, create_map, lit
+from pyspark.sql.functions import udf, year, month, dayofmonth, weekofyear, dayofweek, date_format, avg as _avg, sum as _sum, round as _round, create_map, lit
 from pyspark.sql.types import StructField, StructType, IntegerType, DoubleType, StringType
 
 
 
-# Save AWS credentials as environment variables
+# Get AWS credentials from .cfg file and save them as environment variables
+config = configparser.ConfigParser()
+config.read('dl.cfg')
 
+os.environ['AWS_ACCESS_KEY_ID']=config['AWS']['AWS_ACCESS_KEY_ID']
+os.environ['AWS_SECRET_ACCESS_KEY']=config['AWS']['AWS_SECRET_ACCESS_KEY']
+aws_access_key = config['AWS']['AWS_ACCESS_KEY_ID']
+aws_access_secret_key = config['AWS']['AWS_SECRET_ACCESS_KEY']
 
 
 
@@ -16,8 +22,13 @@ def initiate_spark_session():
     
     spark  = SparkSession \
     .builder \
-    .appName("Data Engineering Project") \
+    .config("spark.jars.repositories", "https://repos.spark-packages.org/")\
+    .config("spark.jars.packages", "saurfang:spark-sas7bdat:2.0.0-s_2.11,org.apache.hadoop:hadoop-aws:3.3.4")\
+    .enableHiveSupport() \
     .getOrCreate()
+
+    # spark.conf.set("spark.hadoop.fs.s3a.access.key", aws_access_key) 
+    # spark.conf.set("spark.hadoop.fs.s3a.secret.key", aws_access_secret_key) 
     
     return spark
 
@@ -32,6 +43,7 @@ def load_data_from_source(spark, in_path, in_format, columns, row_limit, **optio
         columns:    list of columns to read
         row_limit:  number of rows that should be loaded, if None, all rows are loaded    
     """
+    print("load data"+in_path)
     if row_limit is None:
         df = spark.read.load(in_path, format=in_format, **options).select(columns)
     else:
@@ -39,11 +51,11 @@ def load_data_from_source(spark, in_path, in_format, columns, row_limit, **optio
         
     return df
 
-def save_to_s3(df, out_path, mode="overwrite", out_format="parquet"):
+def save_to_s3(df, out_path, mode="overwrite", out_format="parquet", partitionBy=None):
     """
     Saves the data frame as parque file to a destination folder on an S3 bucket.
     """
-    df.write.save(out_path, mode=mode, format=out_format)
+    df.write.save(out_path, mode=mode, format=out_format, partitionBy=partitionBy)
     
 def cast_type(df, cols):
     """
@@ -111,18 +123,20 @@ time_delta_udf = udf(time_delta)
 # ETL immigration data
 def process_immigration_data(
     spark, 
-    in_path="data/sas_data", 
+    in_path, 
+    out_path,
+    date_out_path,
     in_format="parquet",
     columns=['cicid', 'i94yr', 'i94mon', 'i94res', 'i94mode', 'i94addr', 'i94cit', 'i94bir', 'i94visa', 'arrdate', 'depdate', 'biryear', 'dtaddto', 'gender', 'airline', 'admnum', 'fltno', 'visatype'],
-    out_path="s3n:///immigration.parquet",
-    date_out_path="s3a://data-engineer-capstone/date.parquet"):
+    ):
     """
     - loads data
     - transforms data
     - saves data in S3
     """
+    print("state immigration etl")
     # load data
-    immigration = load_data_from_source(spark, in_path=in_path, in_format=in_format, columns=columns, row_limit=None)
+    immigration = load_data_from_source(spark, in_path=in_path, in_format=in_format, columns=columns, row_limit=100)
     
     # turn numeric columns to either integer or double
     int_cols = ['cicid', 'i94yr', 'i94mon', 'i94res', 'i94mode', 'i94cit', 'i94bir', 'i94visa', 'arrdate', 'depdate', 'biryear']
@@ -144,19 +158,19 @@ def process_immigration_data(
     arrival_date = arrival_date.withColumn("dayofweek", dayofweek(arrival_date.arrdate))
     
     # save immigration and arrival_date dataframe to S3 in parquet format
-    save_to_s3(df=immigration, out_path=out_path)
+    save_to_s3(df=immigration, out_path=out_path, partitionBy=['i94yr', 'i94mon'])
     save_to_s3(df=arrival_date, out_path=date_out_path)
-    
+    print("end immigration etl")
     return immigration
     
 
 # ETL demographic data
 def process_demographics_data(
     spark, 
-    in_path="data/us-cities-demographics.csv", 
+    in_path, 
+    out_path,
     in_format="csv",
     columns='*',
-    out_path="s3a://data-engineer-capstone/demographics.parquet",
     header=True,
     sep=";",
     row_limit=None
@@ -168,17 +182,18 @@ def process_demographics_data(
         in_path (str, optional): _description_. Defaults to "data/us-cities-demographics.csv".
         in_format (str, optional): _description_. Defaults to "csv".
         columns (list, optional): _description_. Defaults to [].
-        out_path (str, optional): _description_. Defaults to "s3a://data-engineer-capstone/demographics.parquet".
+        out_path (str, optional): _description_.
 
     Returns:
         _type_: _description_
     """
+    print("START____________________START")
+    print("load demographics etl")
     demographics = load_data_from_source(
         spark,
         in_path=in_path,
         in_format=in_format,
         columns=columns,
-        out_path=out_path,
         header=header,
         sep=sep,
         row_limit=row_limit
@@ -226,7 +241,8 @@ def process_demographics_data(
     
     # Save the dataframe as parquet on S3
     save_to_s3(df=demographics, out_path=out_path)
-    
+    print("END_______________________END")
+    print("end demographis etl")
     return demographics
 
 # Countries 
@@ -236,7 +252,8 @@ def process_countries_data(
     in_path,
     out_path
     ):
-    
+    print("START______________________________START")
+    print("starting countries etl")
     # Create a country code lookup table to match country code and country name
     countries_dict= load_sas_labels(in_path)
     schema = StructType([StructField('countryCode', StringType(), True),StructField('countryName', StringType(), True) ])
@@ -244,13 +261,22 @@ def process_countries_data(
     countries_df = spark.createDataFrame(data_tuples, schema)
     
     # save on S3
+    save_to_s3(df=countries_df,out_path=out_path)
     
+    print("END______________________________________END")
+    print("end countries etl")
     return countries_df
 
+def main ():
+    spark = initiate_spark_session()
+    bucket = "s3a://udacity-data-engineer/"
+    immigration = process_immigration_data(spark, in_path=bucket+"sas_data/", out_path=bucket+"tables/immigration.parquet", date_out_path="tables/arrivaldates.parquet")
+    demographics = process_demographics_data(spark, in_path=bucket+"us-cities-demographics.csv", out_path=bucket+"tables/demographics.parquet")
+    countries = process_countries_data(spark, in_path=bucket+"I94_SAS_Labels_Descriptions.SAS", out_path=bucket+"tables/countries.parquet")
+    
+    spark.stop()
 
 if __name__ == "__main__" :
-    spark = initiate_spark_session()
-    bucket = "s3n://udacity-dataengineer-capstone/"
-    immigration = process_immigration_data(spark, in_path=bucket+"", out_path=bucket+"")
-    demographics = process_demographics_data(spark, in_path=bucket+"", out_path=bucket+"")
-    countries = process_countries_data(spark, in_path=bucket+"I94_SAS_Labels_Descriptions.SAS", out_path=bucket+"")
+    main()
+    
+    
