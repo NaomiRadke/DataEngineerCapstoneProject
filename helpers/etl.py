@@ -1,4 +1,5 @@
 import os
+from smart_open import open
 import configparser
 from datetime import timedelta, datetime
 from pyspark.sql import SparkSession
