@@ -4,70 +4,74 @@ This project is based on the requirements of Udacity's Data Engineering Degree C
 
 ## Goal
 
-What's the goal? What queries will you want to run? 
+In order to allow the U.S Customs & Border Protection Department to more efficiently analyze their immigration data, we are building a data warehouse infrastructure that allows to efficiently query and analyze immigration data as well as its correlation with US city demographics. 
 
-In order to allow the U.S Customs & Border Protection Department to more efficiently analyze their immigration data, we are building a data warehouse infrastructure that allows...
+The data warehouse provides a back-end for their Business Intelligence Tools.
 
-?? What's the end use case? (e.g., analytics table, app back-end, source-of-truth database, etc.)
-
-To answer questions such as:
-- What is the trend in the number of immigrants and their country of origin over the year?
-- are their seasonal trends in the number, country of origin, and city/ state of destination of immigrants?
+It provides a data scheme to answer questions such as:
+- what is the trend in the number of immigrants and their country of origin over the year?
+- are their seasonal trends in the number, country of origin, and state of destination of immigrants?
 - is there a correlation between the country of origin and the destination in the US?
-- is there a correlation between the country of origin and the predominant race in the city/state of destination?
+- is there a correlation between the country of origin and the predominant race in the state of destination?
 - correlation between purpose of travel and destination city / state
 - what's the average stay duration?
 
 ## Data
-To this end I am using the following data sources:
+To this end we are using the following data sources:
 Data sources:
 - US I94 Immigration data
 - US City Demographic Data
+- data labels for the I94 Immigration data from the I94_SAS_Labels_Descriptions.SAS file
 
+## Architecture and Tools
+The whole data pipeline is cloud-based and built on Amazon Web Services (AWS).
 
+As a first step, the raw data from different sources is stored in an S3 bucket. It is then processed using Apache Spark, running on an EMR cluster. During that process, the data is loaded and transformed into a format that mirrors the structure of our data model, described further below. The data is then saved in parquet format in an S3 bucket.
+In the next step, the processed data is loaded into the tables of the data model which are stored in Redshift. The process steps of 1. creating tables in Redshift, 2. loading the data from S3 to Redshift and 3. running quality checks are scheduled with Apache Airflow.
 
-
-How would Spark or Airflow be incorporated? 
-Why did you choose the model you chose?
-
-## Tools, Technologies and Data Model
-Clearly state the rationale for the choice of tools and technologies for the project.
-- Spark for big data analytics for distributing load on multiple nodes (a cluster)
-- Redshift as data warehouse that holds the tables of data, arranged according to a star schema. Redshift is optimized for OLAP (Online Analytical Processing) workloads, and it can handle complex queries and aggregations on large datasets.
-- Airflow to schedule the jobs
-- S3 for storing the data that is sent to the dimension model (Redshift)
+<img src="./img/architecture.png" alt=""/>
 
 ## Process steps
 
-### Exploring the data
-I set up a Jupyter Notebook that allows loading, exploring and cleaning the data.
+### 1 - Exploring the data
+We first conducted an extensive data exploration to get an idea of the data and of the required filter and cleaning process. The data exploration can be found in `data_exploration.py`.
 
-- exploring and wrangling: https://learn.udacity.com/nanodegrees/nd027/parts/cd0030/lessons/ls1966/concepts/c8f47373-8dab-4bab-bbf1-f8e728c5aba7
-- data quality (e.g. missing values, duplicate data etc.)
-- e.g. with sql python plugin? (https://learn.udacity.com/nanodegrees/nd027/parts/cd0055/lessons/ls1964/concepts/c535b758-da20-4713-aac3-5d3e021eabea)
-- clean the data
+### 2 - Define the data model
+The data model is set up according to a star schema. The center of the data model is the immigration data as the fact table. There are 3 dimension tables that are linked to the immigration fact table: 
+1. country: contains the country names and their respective country codes as primary key. The codes are also part of the fact table
+2. arrivalDate: has the arrdate of the immigration fact table as primary key. For each arrival date it splits the day, mont, year, weekofyear and dayofweek as separate values to improve the ease of doing temporal analytics
+3. demographics: has the state code as primary key which can be found in i94addr in the fact table
 
-### Define the data model
-- map out the conceptual data model and explain why i chose it
-- list necessary steps to pipeline the data into the data model
-- OLAP / Star schema (fact and dimension tables)
 
-### Run ETL to model the data
-On an AWS EMR Cluster and using Airflow for scheduling tasks
-- Extract data from source (e.g. postgres / s3)
-- Transform data (join tables together, change types, add new columns) and save it in parquet format in S3 as staging area
-- Load it into dimensional model (star schema --> fact and dimension tables)
-- create data pipelines and data model
-- include data dictionary
-- run data quality check
+<img src="./img/datamodelV2.png" alt=""/>
 
-DAGS:
-- run spark jobs (extract, transform, load to s3)
-    - load to S3 (includes transformation and saving)
-- create tables in redshift
-- stage from s3 to redshift
-- data quality checks
+### 3 - Run ETL to model the data
+In the following, operations that were necessary to transform the raw data into a form that can be piped into the data model, are described. The code that performs these ETL operations can be found in `etl.py`. `etl.py` uses Spark to perform the extract, transform and load operations and is run on an EMR cluster.
 
+**Immigration**
+During the data exploration we identified a set of columns that are relevant for the data model. Numeric columns were turned into integer type and SAS date columns into a YYYY-MM-DD string format. Additionally, we calculated a new column: The stay duration in days, as the different of the arrival and departure date.
+
+Based on the arrivaldate we deducted the day, month, year, weekofyear and dayofweek that were saved into an extra dataframe.
+
+**Demographics**
+We used all columns of the original demographics data and made the following transformations:
+The numeric columns were turned into either integer or, when adequate, double type.
+
+Instead of having a race and a count column (number of inhabitants of a specific race in a specific city), we pivoted the race column so that every race has its own column that indicates the number of inhabitants of that specific race. We could then also drop the count column.
+
+The data was then aggregated per state as the immigration data indicates the destination state, but not the city.
+ 
+**Country labels**
+In the immigration dataset the country of origin is indicated by a numeric country code. The labels for each country code can be found in a separate file, namely `I94_SAS_Labels_Descriptions.SAS`. This SAS label file was loaded as a dictionary, the country codes labels were extracted and the dictionary was turned into a dataframe of country codes and respective country names.
+
+`etl.py` outputs 4 parquet files, one for each table of the data model.
+
+We then use Apache Airflow to run a DAG that:
+- creates the tables according to the data model in Redshift
+- loads the cleaned data (output of `etl.py`) into the data model
+- performs quality checks on each table
+
+The code for the DAG and the operators can be found in the `/airflow` folder.
 
 ## Recommedations and assumptions
 Propose how often the data should be updated and why.

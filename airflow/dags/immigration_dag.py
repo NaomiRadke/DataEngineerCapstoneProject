@@ -72,12 +72,26 @@ date_to_redshift = StageToRedshiftOperator(
     aws_credentials_id="aws_credentials",
     table="public.arrivalDate",
     s3_bucket="udacity-data-engineer",
-    s3_prefix="tables/arrivalDates.parquet",
+    s3_prefix="tables/arrivaldates.parquet",
     options="PARQUET",
     region="eu-central-1",
     dag=dag
 )
 
 # run quality checks
+run_quality_checks = DataQualityOperator(
+    task_id='Run_data_quality_checks',
+    dag=dag,
+    redshift_conn_id="redshift",
+    tables=['immigration', 'demographics', 'countries', 'arrivaldates']
+)
 
 end_operator = EmptyOperator(task_id='Stop_execution',  dag=dag)
+
+#
+# Task ordering for the DAG tasks
+#
+start_operator >> create_tables
+create_tables >> [immigration_to_redshift, demographics_to_redshift, countries_to_redshift, date_to_redshift]
+[immigration_to_redshift, demographics_to_redshift, countries_to_redshift, date_to_redshift] >> run_quality_checks
+run_quality_checks >> end_operator

@@ -62,8 +62,8 @@ def cast_type(df, cols):
     """
     Converts the type of each column of the given dataframe into the type indicated in the columns dictionary
     Args:
-        df (:obj:`SparkDataFrame`): dataframe to be processed
-        cols (:obj:`dict`): column name and type to be converted to like so {"column_name": type}
+        df (SparkDataFrame): dataframe to be processed
+        cols (dict): column name and type to be converted to like so {"column_name": type}
     """
     for k,v in cols.items():
         if k in df.columns:
@@ -87,8 +87,8 @@ def time_delta(date1, date2):
     Calculates the time difference in days between
 
     Args:
-        date1 (_type_): _description_
-        date2 (_type_): _description_
+        date1 (str): first date
+        date2 (str): second date
     """
     
     if date2 is None:
@@ -139,7 +139,7 @@ def process_immigration_data(
     # load data
     immigration = load_data_from_source(spark, in_path=in_path, in_format=in_format, columns=columns, row_limit=100)
     
-    # turn numeric columns to either integer or double
+    # turn numeric columns to either integer
     int_cols = ['cicid', 'i94yr', 'i94mon', 'i94res', 'i94mode', 'i94cit', 'i94bir', 'i94visa', 'arrdate', 'depdate', 'biryear']
     immigration = cast_type(immigration, dict(zip(int_cols, len(int_cols)*[IntegerType()])))
     
