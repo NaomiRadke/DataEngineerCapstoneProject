@@ -74,8 +74,14 @@ We then use Apache Airflow to run a DAG that:
 The code for the DAG and the operators can be found in the `/airflow` folder.
 
 ## Recommedations and assumptions
-Propose how often the data should be updated and why.
-Include a description of how you would approach the problem differently under the following scenarios:
+How often should the data be updated? The customer's requirements regarding how often they need an update is unclear. The parquet files are separated by month. One proposition would be a monthly update, since the parquet files delivered by the customer are partitioned by month. 
+
+How would we approach the problem differently under the following scenarios:
 If the data was increased by 100x.
+--> thanks to the AWS infrastructure the pipeline is easily scalable. The number of nodes of the EMR cluster would have to be increased and the storage capacity of Redshift would have to be increased accordingly
+
 If the pipelines were run on a daily basis by 7am.
+--> we would schedule the dag to run daily at 7am
+
 If the database needed to be accessed by 100+ people.
+--> scaling up the cluster by adding more nodes to provide additional compute and storage capacity
