@@ -20,6 +20,10 @@ aws_access_secret_key = config['AWS']['AWS_SECRET_ACCESS_KEY']
 
 
 def initiate_spark_session():
+    """
+    Creates a Spark Session
+
+    """
     
     spark  = SparkSession \
     .builder \
@@ -27,22 +31,23 @@ def initiate_spark_session():
     .config("spark.jars.packages", "saurfang:spark-sas7bdat:2.0.0-s_2.11,org.apache.hadoop:hadoop-aws:3.3.6")\
     .enableHiveSupport() \
     .getOrCreate()
-
-    # spark.conf.set("spark.hadoop.fs.s3a.access.key", aws_access_key) 
-    # spark.conf.set("spark.hadoop.fs.s3a.secret.key", aws_access_secret_key) 
     
     return spark
 
 # Load data
 def load_data_from_source(spark, in_path, in_format, columns, row_limit, **options):
     """
-    Loads data from the defined input path (in_path) with spark into a spark dataframe
-    args:
-        spark:      the spark session
-        in_path:    input path (string)
-        in_format:  format of data source as string, e.g. 'json'
-        columns:    list of columns to read
-        row_limit:  number of rows that should be loaded, if None, all rows are loaded    
+    Loads data from the defined input path  with spark into a spark dataframe
+  
+    Args:
+        spark (SparkSession): the spark session
+        in_path (str): input path
+        in_format (str): format of data source as string,
+        columns (list): list of columns to read
+        row_limit (int): number of rows that should be loaded, if None, all rows are loaded
+
+    Returns:
+        DataFrame: Spark Dataframe
     """
     print("load data"+in_path)
     if row_limit is None:
@@ -55,6 +60,13 @@ def load_data_from_source(spark, in_path, in_format, columns, row_limit, **optio
 def save_to_s3(df, out_path, mode="overwrite", out_format="parquet", partitionBy=None):
     """
     Saves the data frame as parque file to a destination folder on an S3 bucket.
+
+    Args:
+        df (DataFrame): Spark Dataframe
+        out_path (str): path for saving data frame
+        mode (str, optional): Behaviour of save operation when file already exists. Defaults to "overwrite".
+        out_format (str, optional): file format in which to save the dataframe. Defaults to "parquet".
+        partitionBy (list, optional): list of names of partitioning columns for parquet files. Defaults to None.
     """
     df.write.save(out_path, mode=mode, format=out_format, partitionBy=partitionBy)
     
@@ -75,8 +87,8 @@ def convert_sas_date(df, cols):
     Convert SAS date to a YYYY-MM-DD date format
 
     Args:
-        df (:obj:`SparkDataFrame`): dataframe that holds the date columns to be converted
-        cols (:obj:`list`): list of date columns to be converted
+        df (SparkDataFrame): dataframe that holds the date columns to be converted
+        cols (list): list of date columns to be converted
     """
     for c in [c for c in cols if c in df.columns]:
         df = df.withColumn(c, convert_sas_udf(df[c]))
@@ -100,6 +112,15 @@ def time_delta(date1, date2):
         return delta.days
     
 def load_sas_labels(in_path):
+    """
+    Reads the SAS labe file and returns a dictionary
+
+    Args:
+        in_path (str): path, including name of the file to be read
+
+    Returns:
+        dict: dictionary of key value pairs
+    """
     with open(in_path) as f:
         f_content = f.read()
         f_content = f_content.replace('\t', '')
@@ -107,6 +128,16 @@ def load_sas_labels(in_path):
     return dic    
         
 def code_mapper(file, idx):
+    """
+    extracts the indicated SAS label group and returns the key value pairs as dictionary
+
+    Args:
+        file (): content of SAS label file
+        idx (str): name of the SAS labels to extract
+
+    Returns:
+        dict: a dictionary of key value pairs
+    """
     f_content2 = file[file.index(idx):]
     f_content2 = f_content2[:f_content2.index(';')].split('\n')
     f_content2 = [i.replace("'", "") for i in f_content2]
@@ -131,9 +162,16 @@ def process_immigration_data(
     columns=['cicid', 'i94yr', 'i94mon', 'i94res', 'i94mode', 'i94addr', 'i94cit', 'i94bir', 'i94visa', 'arrdate', 'depdate', 'biryear', 'dtaddto', 'gender', 'airline', 'admnum', 'fltno', 'visatype'],
     ):
     """
-    - loads data
-    - transforms data
-    - saves data in S3
+    Loads immigration data from S3, transforms data and saves the resulting dataframe in S3
+
+    Args:
+        spark (SparkSession): the current spark session
+        in_path (str): input file location
+        out_path (str): desired output file location
+        date_out_path (str): desired date output file location 
+        in_format (str, optional): file format of input file. Defaults to "parquet".
+        columns (list, optional): List of columns to be read. Defaults to ['cicid', 'i94yr', 'i94mon', 'i94res', 'i94mode', 'i94addr', 'i94cit', 'i94bir', 'i94visa', 'arrdate', 'depdate', 'biryear', 'dtaddto', 'gender', 'airline', 'admnum', 'fltno', 'visatype'].
+
     """
     print("state immigration etl")
     # load data
@@ -179,14 +217,12 @@ def process_demographics_data(
     """_summary_
 
     Args:
-        spark (_type_): _description_
-        in_path (str, optional): _description_. Defaults to "data/us-cities-demographics.csv".
-        in_format (str, optional): _description_. Defaults to "csv".
-        columns (list, optional): _description_. Defaults to [].
-        out_path (str, optional): _description_.
+        spark (SparkSession): the current spark session
+        in_path (str, optional): input file location. Defaults to "data/us-cities-demographics.csv".
+        in_format (str, optional): file format of input file. Defaults to "csv".
+        columns (list, optional): List of columns to be read. Defaults to [].
+        out_path (str, optional): desired output file location.
 
-    Returns:
-        _type_: _description_
     """
     print("START____________________START")
     print("load demographics etl")
@@ -253,6 +289,14 @@ def process_countries_data(
     in_path,
     out_path
     ):
+    """_summary_
+
+    Args:
+        spark (SparkSession): current Spark session
+        in_path (str): _description_
+        out_path (str): _description_
+
+    """
     print("START______________________________START")
     print("starting countries etl")
     # Create a country code lookup table to match country code and country name
