@@ -24,7 +24,7 @@ def initiate_spark_session():
     spark  = SparkSession \
     .builder \
     .config("spark.jars.repositories", "https://repos.spark-packages.org/")\
-    .config("spark.jars.packages", "saurfang:spark-sas7bdat:2.0.0-s_2.11,org.apache.hadoop:hadoop-aws:3.3.4")\
+    .config("spark.jars.packages", "saurfang:spark-sas7bdat:2.0.0-s_2.11,org.apache.hadoop:hadoop-aws:3.3.6")\
     .enableHiveSupport() \
     .getOrCreate()
 
@@ -271,7 +271,7 @@ def process_countries_data(
 def main ():
     spark = initiate_spark_session()
     bucket = "s3a://udacity-data-engineer/"
-    immigration = process_immigration_data(spark, in_path=bucket+"sas_data/", out_path=bucket+"tables/immigration.parquet", date_out_path="tables/arrivaldates.parquet")
+    immigration = process_immigration_data(spark, in_path=bucket+"sas_data/", out_path=bucket+"tables/immigration.parquet", date_out_path=bucket+"tables/arrivaldates.parquet")
     demographics = process_demographics_data(spark, in_path=bucket+"us-cities-demographics.csv", out_path=bucket+"tables/demographics.parquet")
     countries = process_countries_data(spark, in_path=bucket+"I94_SAS_Labels_Descriptions.SAS", out_path=bucket+"tables/countries.parquet")
     

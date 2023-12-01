@@ -57,9 +57,5 @@ CREATE TABLE IF NOT EXISTS public.countries (
     CONSTRAINT countries_pkey PRIMARY KEY (countryCode)
 );
 
-CREATE TABLE IF NOT EXISTS public.cities (
-    cityCode int4,
-    cityName varchar,
-    CONSTRAINT cities_pkey PRIMARY KEY (cityCode)
-);
+
 
