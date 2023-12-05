@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS public.immigration (
     CONSTRAINT immigration_pkey PRIMARY KEY (cicid)
 );
 
-CREATE TABLE IF NOT EXISTS public.arrivalDate {
+CREATE TABLE IF NOT EXISTS public.arrivalDate (
     arrivalDate varchar,
     "day" int4,
     "month" int4,
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS public.arrivalDate {
     dayOfWeek int4,
     weekOfYear int4,
     CONSTRAINT arrivaldate_pkey PRIMARY KEY (arrivalDate)
-};
+);
 
 CREATE TABLE IF NOT EXISTS public.demographics (
     stateCode int4,

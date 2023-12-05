@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta
+import os
 from airflow import DAG
-from airflow.operators.empty import EmptyOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
-from airflow.operators import (StageToRedshiftOperator, DataQualityOperator)
+from airflow.operators.dummy_operator import DummyOperator
+from airflow.operators import (StageToRedshiftOperator, LoadFactOperator, LoadDimensionOperator, DataQualityOperator)
+from airflow.operators.postgres_operator import PostgresOperator
 
 default_args = {
     'owner': 'udacity',
@@ -20,7 +21,7 @@ dag = DAG('immigration-data-dag',
           schedule_interval='0 * * * *'
         )
 
-start_operator = EmptyOperator(task_id='Begin_execution',  dag=dag)
+start_operator = DummyOperator(task_id='Begin_execution',  dag=dag)
 
 create_tables = PostgresOperator(
     task_id="Create_Tables",
@@ -86,7 +87,7 @@ run_quality_checks = DataQualityOperator(
     tables=['immigration', 'demographics', 'countries', 'arrivaldates']
 )
 
-end_operator = EmptyOperator(task_id='Stop_execution',  dag=dag)
+end_operator = DummyOperator(task_id='Stop_execution',  dag=dag)
 
 #
 # Task ordering for the DAG tasks
