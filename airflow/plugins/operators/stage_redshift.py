@@ -12,7 +12,7 @@ class StageToRedshiftOperator(BaseOperator):
             ACCESS_KEY_ID '{}'
             SECRET_ACCESS_KEY '{}'
             REGION AS '{}'
-            FORMAT AS '{}'
+            FORMAT AS PARQUET
 
         """
 
@@ -24,7 +24,6 @@ class StageToRedshiftOperator(BaseOperator):
                  table = "",
                  s3_bucket="",
                  s3_prefix="",
-                 options="",
                  region="",
                  *args, **kwargs):
 
@@ -34,14 +33,13 @@ class StageToRedshiftOperator(BaseOperator):
         self.aws_credentials_id = aws_credentials_id
         self.s3_bucket = s3_bucket
         self.s3_prefix = s3_prefix
-        self.options = options
         self.region = region
         
 
 
     def execute(self, context):
         self.log.info('Connecting to Redshift')
-        aws_hook = AwsBaseHook(self.aws_credentials_id)
+        aws_hook = AwsHook(self.aws_credentials_id)
         credentials = aws_hook.get_credentials()
         redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
         
@@ -59,7 +57,6 @@ class StageToRedshiftOperator(BaseOperator):
             credentials.access_key,
             credentials.secret_key,
             self.region,
-            self.options
         )
         redshift.run(formatted_sql)
 

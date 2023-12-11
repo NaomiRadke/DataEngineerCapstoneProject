@@ -175,11 +175,7 @@ def process_immigration_data(
     """
     print("state immigration etl")
     # load data
-    immigration = load_data_from_source(spark, in_path=in_path, in_format=in_format, columns=columns, row_limit=100)
-    
-    # turn numeric columns to either integer
-    int_cols = ['cicid', 'i94yr', 'i94mon', 'i94res', 'i94mode', 'i94cit', 'i94bir', 'i94visa', 'arrdate', 'depdate', 'biryear']
-    immigration = cast_type(immigration, dict(zip(int_cols, len(int_cols)*[IntegerType()])))
+    immigration = load_data_from_source(spark, in_path=in_path, in_format=in_format, columns=columns, row_limit=10000)
     
     # turn SAS date columns to YYYY-MM-DD format
     date_cols = ['arrdate', 'depdate']
@@ -187,6 +183,11 @@ def process_immigration_data(
     
     # add new column for stay duration
     immigration = immigration.withColumn('stay_duration', time_delta_udf(immigration.arrdate, immigration.depdate))
+    
+    # turn numeric columns to either integer
+    int_cols = ['cicid', 'i94yr', 'i94mon', 'i94res', 'i94mode', 'i94cit', 'i94bir', 'i94visa','biryear', 'fltno', 'stay_duration']
+    immigration = cast_type(immigration, dict(zip(int_cols, len(int_cols)*[IntegerType()])))
+    
     
     # create a new dataframe arrival_date that will be used in the data model
     arrival_date = immigration.select('arrdate').distinct()
@@ -256,8 +257,8 @@ def process_demographics_data(
         .agg(_sum("Black or African-American").alias("blackOrAfricanAmerican"), \
             _sum("American Indian and Alaska Native").alias("amerianIndianAndAlaskaNative"), \
             _sum("Hispanic or Latino").alias("hispanicOrLatino"), \
-            _sum("Asian").alias("Asian"),\
-            _sum("White").alias("White"))
+            _sum("Asian").alias("asian"),\
+            _sum("White").alias("white"))
     
     # Also sum the non-race columns per state
     df_by_state = demographics.groupBy(["State", "State Code"]) \
@@ -275,6 +276,17 @@ def process_demographics_data(
     
     # Join the two dataframes
     demographics = df_by_state.join(other=race_by_state, on=["State", "State Code"], how="inner")
+    
+    # Rename state and state code column
+    demographics = demographics.withColumnRenamed("State", "state")
+    demographics = demographics.withColumnRenamed("State Code", "stateCode")
+    
+    # Turn numeric columns into their proper types: Integer or Double
+    int_cols = ['stateCode','malePopulation', 'femalePopulation', 'totalPopulation', 'numberOfVeterans', 'foreignBorn', 'blackOrAfricanAmerican', 'amerianIndianAndAlaskaNative', 'hispanicOrLatino', 'asian', 'white']
+    float_cols = ['medianAge', 'averageHouseholdSize']
+    demographics = cast_type(demographics, dict(zip(int_cols, len(int_cols)*[IntegerType()])))
+    demographics = cast_type(demographics, dict(zip(float_cols, len(float_cols)*[DoubleType()])))
+    
     
     # Save the dataframe as parquet on S3
     save_to_s3(df=demographics, out_path=out_path)
@@ -304,6 +316,7 @@ def process_countries_data(
     schema = StructType([StructField('countryCode', StringType(), True),StructField('countryName', StringType(), True) ])
     data_tuples = [(key, value) for key, value in countries_dict.items()]
     countries_df = spark.createDataFrame(data_tuples, schema)
+    countries_df = countries_df.withColumn("countryCode", countries_df["countryCode"].cast(IntegerType()))
     
     # save on S3
     save_to_s3(df=countries_df,out_path=out_path)
@@ -311,6 +324,12 @@ def process_countries_data(
     print("END______________________________________END")
     print("end countries etl")
     return countries_df
+
+## for local debugging
+# in_path = "./data/sas_data"
+in_path = "./data/I94_SAS_Labels_Descriptions.SAS"
+in_format = "parquet"
+out_path = "./data/demographics.parquet"
 
 def main ():
     spark = initiate_spark_session()

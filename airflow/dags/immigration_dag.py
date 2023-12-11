@@ -32,49 +32,45 @@ create_tables = PostgresOperator(
 
 # stage event to redshift for all tables
 immigration_to_redshift = StageToRedshiftOperator(
-    task_id="stage immigration fact table",
+    task_id="stage_immigration_fact_table",
     redshift_conn_id="redshift",
     aws_credentials_id="aws_credentials",
     table="public.immigration",
     s3_bucket="udacity-data-engineer",
     s3_prefix="tables/immigration.parquet",
-    options="PARQUET",
     region="eu-central-1",
     dag=dag
 )
 
 demographics_to_redshift = StageToRedshiftOperator(
-    task_id="stage demographics dimension table",
+    task_id="stage_demographics_dimension_table",
     redshift_conn_id="redshift",
     aws_credentials_id="aws_credentials",
     table="public.demographics",
     s3_bucket="udacity-data-engineer",
     s3_prefix="tables/demographics.parquet",
-    options="PARQUET",
     region="eu-central-1",
     dag=dag
 )
 
 countries_to_redshift = StageToRedshiftOperator(
-    task_id="stage countries dimension table",
+    task_id="stage_countries_dimension_table",
     redshift_conn_id="redshift",
     aws_credentials_id="aws_credentials",
     table="public.countries",
     s3_bucket="udacity-data-engineer",
     s3_prefix="tables/countries.parquet",
-    options="PARQUET",
     region="eu-central-1",
     dag=dag
 )
 
 date_to_redshift = StageToRedshiftOperator(
-    task_id="stage arrival dates dimension table",
+    task_id="stage_arrival_dates_dimension_table",
     redshift_conn_id="redshift",
     aws_credentials_id="aws_credentials",
     table="public.arrivalDate",
     s3_bucket="udacity-data-engineer",
     s3_prefix="tables/arrivaldates.parquet",
-    options="PARQUET",
     region="eu-central-1",
     dag=dag
 )
