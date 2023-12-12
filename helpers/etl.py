@@ -328,7 +328,7 @@ def process_countries_data(
 
 ## for local debugging
 # in_path = "./data/sas_data"
-# in_path = "./data/s3_out_tables/countries"
+# in_path = "../data/s3_out_tables/demographics"
 # in_format = "parquet"
 # out_path = "./data/demographics.parquet"
 # columns = "*"

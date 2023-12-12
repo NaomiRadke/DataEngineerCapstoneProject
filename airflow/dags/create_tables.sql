@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS public.demographics (
 
 DROP TABLE IF EXISTS public.countries;
 CREATE TABLE IF NOT EXISTS public.countries (
-    countryCode varchar,
+    countryCode int4,
     countryName varchar,
     CONSTRAINT countries_pkey PRIMARY KEY (countryCode)
 );
