@@ -1,10 +1,10 @@
 import os
-from smart_open import open
+# from smart_open import open
 import configparser
 from datetime import timedelta, datetime
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import udf, year, month, dayofmonth, weekofyear, dayofweek, date_format, avg as _avg, sum as _sum, round as _round, create_map, lit
-from pyspark.sql.types import StructField, StructType, IntegerType, DoubleType, StringType
+from pyspark.sql.types import StructField, StructType, IntegerType, DoubleType, StringType, LongType
 
 
 
@@ -239,9 +239,9 @@ def process_demographics_data(
         )
     
     # Turn numeric columns into their proper types: Integer or Double
-    int_cols = ['Count', 'Male Population', 'Female Population', 'Total Population', 'Number of Veterans', 'Foreign-born']
+    int8_cols = ['Count', 'Male Population', 'Female Population', 'Total Population', 'Number of Veterans', 'Foreign-born']
     float_cols = ['Median Age', 'Average Household Size']
-    demographics = cast_type(demographics, dict(zip(int_cols, len(int_cols)*[IntegerType()])))
+    demographics = cast_type(demographics, dict(zip(int8_cols, len(int8_cols)*[LongType()])))
     demographics = cast_type(demographics, dict(zip(float_cols, len(float_cols)*[DoubleType()])))
     
     # Aggregate columns per state. This requires first to aggregate by city and to pivot the race+count column
@@ -283,9 +283,9 @@ def process_demographics_data(
     demographics = demographics.withColumnRenamed("State Code", "stateCode")
     
     # Turn numeric columns into their proper types: Integer or Double
-    int_cols = ['stateCode','malePopulation', 'femalePopulation', 'totalPopulation', 'numberOfVeterans', 'foreignBorn', 'blackOrAfricanAmerican', 'amerianIndianAndAlaskaNative', 'hispanicOrLatino', 'asian', 'white']
+    int8_cols = ['stateCode','malePopulation', 'femalePopulation', 'totalPopulation', 'numberOfVeterans', 'foreignBorn', 'blackOrAfricanAmerican', 'americanIndianAndAlaskaNative', 'hispanicOrLatino', 'asian', 'white']
     float_cols = ['medianAge', 'averageHouseholdSize']
-    demographics = cast_type(demographics, dict(zip(int_cols, len(int_cols)*[IntegerType()])))
+    demographics = cast_type(demographics, dict(zip(int8_cols, len(int8_cols)*[LongType()])))
     demographics = cast_type(demographics, dict(zip(float_cols, len(float_cols)*[DoubleType()])))
     
     

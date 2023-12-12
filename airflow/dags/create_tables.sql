@@ -1,10 +1,9 @@
 -- DATA MODEL TABLES
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
 
-DROP TABLE IF EXISTS public.immigration;
-CREATE TABLE IF NOT EXISTS public.immigration (
+CREATE TABLE public.immigration (
     cicid int4,
-    i94yr int4,
-    i94mon int4,
     i94res int4,
     i94mode int4,
     i94addr varchar,
@@ -21,11 +20,12 @@ CREATE TABLE IF NOT EXISTS public.immigration (
     fltno int4,
     visatype varchar,
     durationStay int4,
+    i94yr int4,
+    i94mon int4,
     CONSTRAINT immigration_pkey PRIMARY KEY (cicid)
 );
 
-DROP TABLE IF EXISTS public.arrivalDate;
-CREATE TABLE IF NOT EXISTS public.arrivalDate (
+CREATE TABLE public.arrivalDate (
     arrivalDate varchar,
     "day" int4,
     "month" int4,
@@ -35,27 +35,26 @@ CREATE TABLE IF NOT EXISTS public.arrivalDate (
     CONSTRAINT arrivaldate_pkey PRIMARY KEY (arrivalDate)
 );
 
-DROP TABLE IF EXISTS public.demographics;
-CREATE TABLE IF NOT EXISTS public.demographics (
-    stateCode int4,
+CREATE TABLE public.demographics (
     state varchar,
+    stateCode int4,
+    malePopulation int8,
+    femalePopulation int8,
+    totalPopulation int8,
+    numberOfVeterans int8,
+    foreignBorn int8,
     medianAge float,
-    malePopulation int4,
-    femalePopulation int4,
-    totalPopulation int4,
-    numberOfVeterans int4,
-    foreignBorn int4,
     averageHouseholdSize float,
-    blackOrAfricanAmerican int4,
-    hispanicOrLatino int4,
-    americanIndianAndAlaskaNative int4,
-    asian int4,
-    white int4,
+    blackOrAfricanAmerican int8,
+    americanIndianAndAlaskaNative int8,
+    hispanicOrLatino int8,
+    asian int8,
+    white int8,
     CONSTRAINT demographics_pkey PRIMARY KEY (stateCode)
 );   
 
-DROP TABLE IF EXISTS public.countries;
-CREATE TABLE IF NOT EXISTS public.countries (
+
+CREATE TABLE public.countries (
     countryCode int4,
     countryName varchar,
     CONSTRAINT countries_pkey PRIMARY KEY (countryCode)
