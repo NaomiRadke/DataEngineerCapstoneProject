@@ -21,6 +21,7 @@ aws_access_secret_key = config['AWS']['AWS_SECRET_ACCESS_KEY']
 
 def initiate_spark_session():
     """
+
     Creates a Spark Session
 
     """
@@ -175,17 +176,17 @@ def process_immigration_data(
     """
     print("state immigration etl")
     # load data
-    immigration = load_data_from_source(spark, in_path=in_path, in_format=in_format, columns=columns, row_limit=10000)
+    immigration = load_data_from_source(spark, in_path=in_path, in_format=in_format, columns=columns, row_limit=None)
     
     # turn SAS date columns to YYYY-MM-DD format
     date_cols = ['arrdate', 'depdate']
     immigration = convert_sas_date(immigration, date_cols)
     
     # add new column for stay duration
-    immigration = immigration.withColumn('stay_duration', time_delta_udf(immigration.arrdate, immigration.depdate))
+    immigration = immigration.withColumn('durationStay', time_delta_udf(immigration.arrdate, immigration.depdate))
     
-    # turn numeric columns to either integer
-    int_cols = ['cicid', 'i94yr', 'i94mon', 'i94res', 'i94mode', 'i94cit', 'i94bir', 'i94visa','biryear', 'fltno', 'stay_duration']
+    # turn numeric columns to integer
+    int_cols = ['cicid', 'i94yr', 'i94mon', 'i94res', 'i94mode', 'i94cit', 'i94bir', 'i94visa','biryear', 'fltno', 'stay_duration', 'admnum']
     immigration = cast_type(immigration, dict(zip(int_cols, len(int_cols)*[IntegerType()])))
     
     
@@ -255,7 +256,7 @@ def process_demographics_data(
     race_by_state = race_by_city.groupBy(["State", "State Code"]).sum()
     race_by_state = race_by_city.groupBy(["State", "State Code"]) \
         .agg(_sum("Black or African-American").alias("blackOrAfricanAmerican"), \
-            _sum("American Indian and Alaska Native").alias("amerianIndianAndAlaskaNative"), \
+            _sum("American Indian and Alaska Native").alias("americanIndianAndAlaskaNative"), \
             _sum("Hispanic or Latino").alias("hispanicOrLatino"), \
             _sum("Asian").alias("asian"),\
             _sum("White").alias("white"))
@@ -327,9 +328,10 @@ def process_countries_data(
 
 ## for local debugging
 # in_path = "./data/sas_data"
-in_path = "./data/I94_SAS_Labels_Descriptions.SAS"
-in_format = "parquet"
-out_path = "./data/demographics.parquet"
+# in_path = "./data/s3_out_tables/countries"
+# in_format = "parquet"
+# out_path = "./data/demographics.parquet"
+# columns = "*"
 
 def main ():
     spark = initiate_spark_session()
