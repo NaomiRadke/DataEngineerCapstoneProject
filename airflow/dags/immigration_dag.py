@@ -18,7 +18,7 @@ default_args = {
 dag = DAG('immigration-data-dag',
           default_args=default_args,
           description='Load and transform data in Redshift with Airflow',
-          schedule_interval='0 * * * *'
+          schedule_interval='0 0 1 * *'
         )
 
 start_operator = DummyOperator(task_id='Begin_execution',  dag=dag)
@@ -89,6 +89,6 @@ end_operator = DummyOperator(task_id='Stop_execution',  dag=dag)
 # Task ordering for the DAG tasks
 #
 start_operator >> create_tables
-create_tables >> [immigration_to_redshift, demographics_to_redshift, countries_to_redshift, date_to_redshift]
-[immigration_to_redshift, demographics_to_redshift, countries_to_redshift, date_to_redshift] >> run_quality_checks
+create_tables >> [demographics_to_redshift, countries_to_redshift, date_to_redshift]
+[demographics_to_redshift, countries_to_redshift, date_to_redshift] >> run_quality_checks
 run_quality_checks >> end_operator

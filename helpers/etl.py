@@ -329,10 +329,10 @@ def process_countries_data(
     return countries_df
 
 ## for local debugging
-# in_path = "./data/us-cities-demographics.csv"
-# in_path = "./data/s3_out_tables/immigration"
+# in_path = "./data/sas_data"
+# in_path = "../data/s3_out_tables/immigration"
 # in_format = "parquet"
-# out_path = "./data/demographics.parquet"
+
 # columns = "*"
 
 def main ():
