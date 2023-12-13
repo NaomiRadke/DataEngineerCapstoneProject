@@ -186,7 +186,7 @@ def process_immigration_data(
     immigration = immigration.withColumn('durationStay', time_delta_udf(immigration.arrdate, immigration.depdate))
     
     # turn numeric columns to integer
-    int_cols = ['cicid', 'i94yr', 'i94mon', 'i94res', 'i94mode', 'i94cit', 'i94bir', 'i94visa','biryear', 'fltno', 'stay_duration', 'admnum']
+    int_cols = ['cicid', 'i94yr', 'i94mon', 'i94res', 'i94mode', 'i94cit', 'i94bir', 'i94visa','biryear', 'fltno', 'durationStay', 'admnum']
     immigration = cast_type(immigration, dict(zip(int_cols, len(int_cols)*[IntegerType()])))
     
     
@@ -238,6 +238,8 @@ def process_demographics_data(
         row_limit=row_limit
         )
     
+    # Drop NULL values
+    
     # Turn numeric columns into their proper types: Integer or Double
     int8_cols = ['Count', 'Male Population', 'Female Population', 'Total Population', 'Number of Veterans', 'Foreign-born']
     float_cols = ['Median Age', 'Average Household Size']
@@ -283,7 +285,7 @@ def process_demographics_data(
     demographics = demographics.withColumnRenamed("State Code", "stateCode")
     
     # Turn numeric columns into their proper types: Integer or Double
-    int8_cols = ['stateCode','malePopulation', 'femalePopulation', 'totalPopulation', 'numberOfVeterans', 'foreignBorn', 'blackOrAfricanAmerican', 'americanIndianAndAlaskaNative', 'hispanicOrLatino', 'asian', 'white']
+    int8_cols = ['malePopulation', 'femalePopulation', 'totalPopulation', 'numberOfVeterans', 'foreignBorn', 'blackOrAfricanAmerican', 'americanIndianAndAlaskaNative', 'hispanicOrLatino', 'asian', 'white']
     float_cols = ['medianAge', 'averageHouseholdSize']
     demographics = cast_type(demographics, dict(zip(int8_cols, len(int8_cols)*[LongType()])))
     demographics = cast_type(demographics, dict(zip(float_cols, len(float_cols)*[DoubleType()])))
@@ -327,8 +329,8 @@ def process_countries_data(
     return countries_df
 
 ## for local debugging
-# in_path = "./data/sas_data"
-# in_path = "../data/s3_out_tables/demographics"
+# in_path = "./data/us-cities-demographics.csv"
+# in_path = "./data/s3_out_tables/immigration"
 # in_format = "parquet"
 # out_path = "./data/demographics.parquet"
 # columns = "*"

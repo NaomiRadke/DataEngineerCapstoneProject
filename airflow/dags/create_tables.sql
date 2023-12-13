@@ -37,7 +37,7 @@ CREATE TABLE public.arrivalDate (
 
 CREATE TABLE public.demographics (
     state varchar,
-    stateCode int4,
+    stateCode varchar,
     malePopulation int8,
     femalePopulation int8,
     totalPopulation int8,
