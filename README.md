@@ -53,6 +53,36 @@ During the data exploration we identified a set of columns that are relevant for
 
 Based on the arrivaldate we deducted the day, month, year, weekofyear and dayofweek that were saved into an extra dataframe.
 
+| **Column name**     | **Description**                                                                       |
+|---------------------|---------------------------------------------------------------------------------------|
+| cicid (int4)        | ID that uniquely identify one record in the dataset                                   |
+| i94res (int4)       | 3 digit code of country of origin                                                     |
+| i94mode (int4)      | Mode of arrival (1 = Air; 2 = Sea; 3 = Land; 9 = Not reported)                        |
+| i94addr (varchar)   | State of arrival                                                                      |
+| i94cit (int4)       | 3 digit code of city of origin                                                        |
+| i94bir (int4)       | Age of Respondent in Years                                                            |
+| i94visa (int4)      | Visa codes collapsed into three categories: (1 = Business; 2 = Pleasure; 3 = Student) |
+| arrdate (varchar)   | Arrival date in the USA                                                               |
+| depdate (varchar)   | Departure date from the USA                                                           |
+| biryear (int4)      | 4 digit year of birth                                                                 |
+| dtaddto (varchar)   | Character date field - Date to which admitted to US (allowed to stay until)           |
+| gender (varchar)    | Non-immigrant sex                                                                     |
+| airline (varchar)   | Airline used to arrive in U.S.                                                        |
+| admnum (int4)       | Admission number                                                                      |
+| fltno (int4)        | Flight number of Airline used to arrive in U.S.                                       |
+| visatype (varchar)  | Class of admission legally admitting the non-immigrant to temporarily stay in U.S.    |
+| durationStay (int4) | duration of stay in days                                                              |
+| i94yr (int4)        | 4 digit year                                                                          |
+| i94mon (int4)       | Numeric month                                                                         |
+
+| **Column name**       | **Description**             |
+|-----------------------|-----------------------------|
+| arrivalDate (varchar) | Arrival date in the USA     |
+| day (int4)            | day of arrival date         |
+| month (int4)          | month of arrival date       |
+| year (int4)           | year of arrival date        |
+| dayOfWeek (int4)      | day of week of arrival date |
+
 **Demographics**
 We used all columns of the original demographics data and made the following transformations:
 The numeric columns were turned into either integer or, when adequate, double type.
@@ -60,9 +90,32 @@ The numeric columns were turned into either integer or, when adequate, double ty
 Instead of having a race and a count column (number of inhabitants of a specific race in a specific city), we pivoted the race column so that every race has its own column that indicates the number of inhabitants of that specific race. We could then also drop the count column.
 
 The data was then aggregated per state as the immigration data indicates the destination state, but not the city.
+
+| **Column name**                      | **Description**                                                 |
+|--------------------------------------|-----------------------------------------------------------------|
+| state (varchar)                      | US state                                                        |
+| stateCode (varchar)                  | Two-letter state code                                           |
+| malePopulation (int8)                | Male population size                                            |
+| femalePopulation (int8)              | Female population size                                          |
+| totalPopulation (int8)               | Total population size                                           |
+| numberOfVeterans (int8)              | Number of veterans in the population                            |
+| foreignBorn (int8)                   | Number of residents that were born in another city              |
+| medianAge (float)                    | Median age of the population                                    |
+| averageHouseholdSize (float)         | Average size of the households in the city                      |
+| blackOrAfricanAmerican (int8)        | Number of inhabitants that are Black or African American        |
+| americanIndianAndAlaskaNative (int8) | Number of inhabitants that are American Indian or Alaska Native |
+| hispanicOrLatino (int8)              | Number of inhabitants that are Hispanic or Latino               |
+| asian (int8)                         | Number of inhabitants that are Asian                            |
+| white (int8)                         | Number of inhabitants that are White                            |
  
 **Country labels**
 In the immigration dataset the country of origin is indicated by a numeric country code. The labels for each country code can be found in a separate file, namely `I94_SAS_Labels_Descriptions.SAS`. This SAS label file was loaded as a dictionary, the country codes labels were extracted and the dictionary was turned into a dataframe of country codes and respective country names.
+
+| **Column name**       | **Description** |
+|-----------------------|-----------------|
+| countryCode (int4)    | country code    |
+| countryName (varchar) | country name    |
+
 
 `etl.py` outputs 4 parquet files, one for each table of the data model.
 
