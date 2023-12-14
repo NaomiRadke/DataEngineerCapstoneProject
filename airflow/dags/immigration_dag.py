@@ -80,7 +80,8 @@ run_quality_checks = DataQualityOperator(
     task_id='Run_data_quality_checks',
     dag=dag,
     redshift_conn_id="redshift",
-    tables=['immigration', 'demographics', 'countries', 'arrivaldates']
+    tables=['immigration', 'demographics', 'countries', 'arrivaldates'],
+    pkeys=['cicid', 'stateCode', 'countryCode', 'arrivalDate']
 )
 
 end_operator = DummyOperator(task_id='Stop_execution',  dag=dag)
@@ -89,6 +90,6 @@ end_operator = DummyOperator(task_id='Stop_execution',  dag=dag)
 # Task ordering for the DAG tasks
 #
 start_operator >> create_tables
-create_tables >> [demographics_to_redshift, countries_to_redshift, date_to_redshift]
-[demographics_to_redshift, countries_to_redshift, date_to_redshift] >> run_quality_checks
+create_tables >> [immigration_to_redshift, demographics_to_redshift, countries_to_redshift, date_to_redshift]
+[immigration_to_redshift, demographics_to_redshift, countries_to_redshift, date_to_redshift] >> run_quality_checks
 run_quality_checks >> end_operator

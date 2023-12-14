@@ -18,6 +18,7 @@ aws_access_key = config['AWS']['AWS_ACCESS_KEY_ID']
 aws_access_secret_key = config['AWS']['AWS_SECRET_ACCESS_KEY']
 
 
+#_____________ Define functions necessary to perform ETL processes ___________________________#
 
 def initiate_spark_session():
     """
@@ -147,11 +148,15 @@ def code_mapper(file, idx):
     return dic
     
 
+
 # user-defined function to turn SAS dates into YYYY-MM-DD format
 date_format="%Y-%m-%d"
 convert_sas_udf = udf(lambda x: x if x is None else (timedelta(days=x) + datetime(1960, 1, 1)).strftime(date_format))   
 time_delta_udf = udf(time_delta) 
 
+
+
+#_____________ The ETL processes for the data sources ___________________________#
     
 # ETL immigration data
 def process_immigration_data(
@@ -238,7 +243,6 @@ def process_demographics_data(
         row_limit=row_limit
         )
     
-    # Drop NULL values
     
     # Turn numeric columns into their proper types: Integer or Double
     int8_cols = ['Count', 'Male Population', 'Female Population', 'Total Population', 'Number of Veterans', 'Foreign-born']
@@ -330,7 +334,7 @@ def process_countries_data(
 
 ## for local debugging
 # in_path = "./data/sas_data"
-# in_path = "../data/s3_out_tables/immigration"
+# in_path = "./data/s3_out_tables/immigration"
 # in_format = "parquet"
 
 # columns = "*"
