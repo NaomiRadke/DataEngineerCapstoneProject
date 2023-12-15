@@ -139,11 +139,13 @@ Here are some query examples, that can be conducted with the data model
 ````
 SELECT AVG(i.durationStay), a.month FROM immigration as i INNER JOIN arrivaldates as a ON i.arrdate = a.arrivalDate GROUP BY a.month
 ````
+<img src="./img/query1.png" alt=""/>
+
 2. What countries do most visitors originally come from?
 ````
-SELECT COUNT(i.i94), c.countryName FROM immigration as i INNER JOIN country as c ON i.i94 = c.countryCode
+SELECT COUNT(i.i94cit) as visitors, c.countryName FROM immigration as i INNER JOIN countries as c ON i.i94cit = c.countryCode GROUP BY c.countryName order by visitors DESC LIMIT 10;
 ````
-
+<img src="./img/query2.png" alt=""/>
 
 ## Recommedations and assumptions
 How often should the data be updated? The customer's requirements regarding how often they need an update is unclear. The parquet files are separated by month. One proposition would be a monthly update, since the parquet files delivered by the customer are partitioned by month. 

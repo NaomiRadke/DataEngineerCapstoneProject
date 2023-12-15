@@ -4,6 +4,8 @@ CREATE SCHEMA public;
 
 CREATE TABLE public.immigration (
     cicid int4,
+    i94yr int4,
+    i94mon int4,
     i94res int4,
     i94mode int4,
     i94addr varchar,
@@ -20,8 +22,6 @@ CREATE TABLE public.immigration (
     fltno int4,
     visatype varchar,
     durationStay int4,
-    i94yr int4,
-    i94mon int4,
     CONSTRAINT immigration_pkey PRIMARY KEY (cicid)
 );
 
