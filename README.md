@@ -53,6 +53,7 @@ During the data exploration we identified a set of columns that are relevant for
 
 Based on the arrivaldate we deducted the day, month, year, weekofyear and dayofweek that were saved into an extra dataframe.
 
+Table "immigration"
 | **Column name**     | **Description**                                                                       |
 |---------------------|---------------------------------------------------------------------------------------|
 | cicid (int4)        | ID that uniquely identify one record in the dataset                                   |
@@ -75,6 +76,7 @@ Based on the arrivaldate we deducted the day, month, year, weekofyear and dayofw
 | i94yr (int4)        | 4 digit year                                                                          |
 | i94mon (int4)       | Numeric month                                                                         |
 
+Table "arrivaldates"
 | **Column name**       | **Description**             |
 |-----------------------|-----------------------------|
 | arrivalDate (varchar) | Arrival date in the USA     |
@@ -91,6 +93,7 @@ Instead of having a race and a count column (number of inhabitants of a specific
 
 The data was then aggregated per state as the immigration data indicates the destination state, but not the city.
 
+Table "demographics"
 | **Column name**                      | **Description**                                                 |
 |--------------------------------------|-----------------------------------------------------------------|
 | state (varchar)                      | US state                                                        |
@@ -111,13 +114,14 @@ The data was then aggregated per state as the immigration data indicates the des
 **Country labels**
 In the immigration dataset the country of origin is indicated by a numeric country code. The labels for each country code can be found in a separate file, namely `I94_SAS_Labels_Descriptions.SAS`. This SAS label file was loaded as a dictionary, the country codes labels were extracted and the dictionary was turned into a dataframe of country codes and respective country names.
 
+Table "countries"
 | **Column name**       | **Description** |
 |-----------------------|-----------------|
 | countryCode (int4)    | country code    |
 | countryName (varchar) | country name    |
 
 
-`etl.py` outputs 4 parquet files, one for each table of the data model.
+`etl.py` outputs 4 parquet files, one for each table of the data model. Samples of the output data are stored in the folder `result_samples`. The output data for each table is in parquet format.
 
 We then use Apache Airflow to run a DAG that:
 - creates the tables according to the data model in Redshift
@@ -125,6 +129,21 @@ We then use Apache Airflow to run a DAG that:
 - performs quality checks on each table
 
 The code for the DAG and the operators can be found in the `/airflow` folder.
+
+
+## Analytical query examples
+We indicated some example analytical questions in the **Goals** section.
+Here are some query examples, that can be conducted with the data model
+
+1. What is the average stay duration in the US for the distinct months?
+````
+SELECT AVG(i.durationStay), a.month FROM immigration as i INNER JOIN arrivaldates as a ON i.arrdate = a.arrivalDate GROUP BY a.month
+````
+2. What countries do most visitors originally come from?
+````
+SELECT COUNT(i.i94), c.countryName FROM immigration as i INNER JOIN country as c ON i.i94 = c.countryCode
+````
+
 
 ## Recommedations and assumptions
 How often should the data be updated? The customer's requirements regarding how often they need an update is unclear. The parquet files are separated by month. One proposition would be a monthly update, since the parquet files delivered by the customer are partitioned by month. 
