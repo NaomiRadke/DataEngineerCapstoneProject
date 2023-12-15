@@ -30,7 +30,7 @@ def initiate_spark_session():
     spark  = SparkSession \
     .builder \
     .config("spark.jars.repositories", "https://repos.spark-packages.org/")\
-    .config("spark.jars.packages", "saurfang:spark-sas7bdat:2.0.0-s_2.11,org.apache.hadoop:hadoop-aws:3.3.6")\
+    .config("spark.jars.packages", "saurfang:spark-sas7bdat:2.1.0-s_2.11,org.apache.hadoop:hadoop-aws:3.3.6")\
     .enableHiveSupport() \
     .getOrCreate()
     
@@ -204,7 +204,7 @@ def process_immigration_data(
     arrival_date = arrival_date.withColumn("dayofweek", dayofweek(arrival_date.arrdate))
     
     # save immigration and arrival_date dataframe to S3 in parquet format
-    save_to_s3(df=immigration, out_path=out_path, partitionBy=['i94yr', 'i94mon'])
+    save_to_s3(df=immigration, out_path=out_path)
     save_to_s3(df=arrival_date, out_path=date_out_path)
     print("end immigration etl")
     return immigration
